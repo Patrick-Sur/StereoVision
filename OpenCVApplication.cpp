@@ -8,9 +8,8 @@ using namespace std;
 using namespace cv;
 namespace fs = std::filesystem;
 
-// ---------------------------------------------------------
-// 1. FILTRU MEDIAN 5x5
-// ---------------------------------------------------------
+
+// 1. FILTRU MEDIAN
 Mat filtruMedianOptimizat(const Mat& src) {
     Mat dst = Mat::zeros(src.size(), src.type());
     int offset = 2; // fereastra 5x5
@@ -29,7 +28,7 @@ Mat filtruMedianOptimizat(const Mat& src) {
                 }
             }
 
-            // Sortează array-ul și ia valoarea din mijloc
+
             sort(valori, valori + 25);
             dst.at<uchar>(i, j) = valori[12];
         }
@@ -37,9 +36,8 @@ Mat filtruMedianOptimizat(const Mat& src) {
     return dst;
 }
 
-// ---------------------------------------------------------
-// 2. FILTRU GAUSSIAN 5x5 OPTIMIZAT
-// ---------------------------------------------------------
+
+// 2. FILTRU GAUSSIAN
 Mat filtruGaussianOptimizat(const Mat& src) {
     const int kernel[5][5] = {
         {1,  4,  7,  4, 1},
@@ -67,9 +65,8 @@ Mat filtruGaussianOptimizat(const Mat& src) {
     return dst;
 }
 
-// ---------------------------------------------------------
+
 // 3. CALCUL DEPTH MAP (SAD - Sum of Absolute Differences)
-// ---------------------------------------------------------
 Mat calculeazaDepthMapSAD(const Mat& stanga, const Mat& dreapta, int fereastra, int max_disparitate) {
     Mat depthMap = Mat::zeros(stanga.size(), CV_8UC1);
     int offset = fereastra / 2;
@@ -104,9 +101,8 @@ Mat calculeazaDepthMapSAD(const Mat& stanga, const Mat& dreapta, int fereastra, 
     return depthMap;
 }
 
-// ---------------------------------------------------------
-// 4. ANAGLIFĂ SINTETICĂ (Modulată fix de Depth Map)
-// ---------------------------------------------------------
+
+// 4. CALCUL ANAGLIFĂ
 Mat creeazaAnaglifaCuDepthCorect(const Mat& stanga, const Mat& dreapta, const Mat& depthMap, int max_disparitate) {
     Mat anaglifa = Mat::zeros(stanga.size(), CV_8UC3);
     float factor_confort = 0.1f;
@@ -115,18 +111,17 @@ Mat creeazaAnaglifaCuDepthCorect(const Mat& stanga, const Mat& dreapta, const Ma
     for (int y = 0; y < stanga.rows; y++) {
         for (int x = 0; x < stanga.cols; x++) {
 
-            // Ochiul Stâng Vede Canalul ROȘU (Nemodificat)
+            // Ochiul Stâng Vede Canalul ROȘU
             anaglifa.at<Vec3b>(y, x)[2] = stanga.at<uchar>(y, x);
 
-            // Ochiul Drept vede Canalele VERDE și ALBASTRU (Cyan).
-            // Le mutăm bazându-ne pe Harta de Adâncime!
             int disparitate_pixel = (depthMap.at<uchar>(y, x) * max_disparitate * factor_confort) / 255; 
             int x_ochi_drept = x - disparitate_pixel;
 
+            // Ochiul Drept vede Canalele VERDE și ALBASTRU (Cyan).
             if (x_ochi_drept >= 0) {
                 uchar cyan = dreapta.at<uchar>(y, x_ochi_drept);
-                anaglifa.at<Vec3b>(y, x)[1] = cyan; // Verde
-                anaglifa.at<Vec3b>(y, x)[0] = cyan; // Albastru
+                anaglifa.at<Vec3b>(y, x)[1] = cyan;
+                anaglifa.at<Vec3b>(y, x)[0] = cyan;
             }
             else {
                 anaglifa.at<Vec3b>(y, x)[1] = 0;
@@ -138,9 +133,6 @@ Mat creeazaAnaglifaCuDepthCorect(const Mat& stanga, const Mat& dreapta, const Ma
 }
 
 int main() {
-    // ---------------------------------------------------------
-    // A. MENIU INTERACTIV
-    // ---------------------------------------------------------
     int optiune;
     string cale_stanga, cale_dreapta, nume_video;
 
@@ -194,9 +186,7 @@ int main() {
 
     cout << "\nSe proceseaza:\n- " << cale_stanga << "\n- " << cale_dreapta << "\n\n";
 
-    // ---------------------------------------------------------
-    // B. CITIREA ȘI SORTAREA FIȘIERELOR
-    // ---------------------------------------------------------
+
     vector<string> fisiere_stanga, fisiere_dreapta;
 
     if (!fs::exists(cale_stanga) || !fs::exists(cale_dreapta)) {
@@ -218,18 +208,15 @@ int main() {
         return -1;
     }
 
-    // ---------------------------------------------------------
-    // C. CONFIGURARE IEȘIRE VIDEO
-    // ---------------------------------------------------------
+
     Mat tempImg = imread(fisiere_stanga[0], IMREAD_GRAYSCALE);
     Size dimCadru = tempImg.size();
 
     int fps = 15;
     VideoWriter videoFinal(nume_video, VideoWriter::fourcc('M', 'J', 'P', 'G'), fps, dimCadru, true);
 
-    // ---------------------------------------------------------
-    // D. PROCESAREA CADRU CU CADRU
-    // ---------------------------------------------------------
+
+
     int fereastra_cautare = 11;
     int max_disparitate = 32;
 
@@ -239,25 +226,25 @@ int main() {
 
         if (imgStanga.empty() || imgDreapta.empty()) continue;
 
-        // 1. Calculăm Harta de Adâncime Manuală
+        // Calculăm Harta de Adâncime Manuală
         Mat depthMap = calculeazaDepthMapSAD(imgStanga, imgDreapta, fereastra_cautare, max_disparitate);
 
-        // 2. Aplicăm Post-Procesare (Simulăm un SGBM "sărac")
+        // Aplicăm Post-Procesare
         depthMap = filtruMedianOptimizat(depthMap);
         depthMap = filtruMedianOptimizat(depthMap);
         depthMap = filtruGaussianOptimizat(depthMap);
 
-        // 3. Creăm Anaglifa folosind Harta Curățată
+
         Mat anaglifa = creeazaAnaglifaCuDepthCorect(imgStanga, imgDreapta, depthMap, max_disparitate);
 
-        // 4. Salvare și afișare
+
         videoFinal.write(anaglifa);
         imshow("Harta Adancime", depthMap);
         imshow("Anaglifa (Sintetica 3D)", anaglifa);
 
         cout << "Cadru procesat: " << i + 1 << "/" << fisiere_stanga.size() << endl;
 
-        if (waitKey(1) == 27) break; // ESC pentru oprire
+        if (waitKey(1) == 27) break;
     }
 
     videoFinal.release();
