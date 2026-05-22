@@ -1,0 +1,14 @@
+.vs/
+x64/
+OpenCVAp*/
+*.user
+
+
+*.avi
+*.mp4
+
+
+OpenCV/
+Images/
+Videos/
+test/
