@@ -9,7 +9,7 @@ using namespace cv;
 namespace fs = std::filesystem;
 
 
-// 1. FILTRU MEDIAN
+// FILTRU MEDIAN
 Mat filtruMedianOptimizat(const Mat& src) {
     Mat dst = Mat::zeros(src.size(), src.type());
     int offset = 2; // fereastra 5x5
@@ -37,7 +37,7 @@ Mat filtruMedianOptimizat(const Mat& src) {
 }
 
 
-// 2. FILTRU GAUSSIAN
+// FILTRU GAUSSIAN
 Mat filtruGaussianOptimizat(const Mat& src) {
     const int kernel[5][5] = {
         {1,  4,  7,  4, 1},
@@ -66,7 +66,7 @@ Mat filtruGaussianOptimizat(const Mat& src) {
 }
 
 
-// 3. CALCUL DEPTH MAP (SAD - Sum of Absolute Differences)
+// CALCUL DEPTH MAP (SAD - Sum of Absolute Differences)
 Mat calculeazaDepthMapSAD(const Mat& stanga, const Mat& dreapta, int fereastra, int max_disparitate) {
     Mat depthMap = Mat::zeros(stanga.size(), CV_8UC1);
     int offset = fereastra / 2;
@@ -102,7 +102,7 @@ Mat calculeazaDepthMapSAD(const Mat& stanga, const Mat& dreapta, int fereastra, 
 }
 
 
-// 4. CALCUL ANAGLIFĂ
+// CALCUL ANAGLIFĂ
 Mat creeazaAnaglifaCuDepthCorect(const Mat& stanga, const Mat& dreapta, const Mat& depthMap, int max_disparitate) {
     Mat anaglifa = Mat::zeros(stanga.size(), CV_8UC3);
     float factor_confort = 0.1f;
@@ -111,13 +111,13 @@ Mat creeazaAnaglifaCuDepthCorect(const Mat& stanga, const Mat& dreapta, const Ma
     for (int y = 0; y < stanga.rows; y++) {
         for (int x = 0; x < stanga.cols; x++) {
 
-            // Ochiul Stâng Vede Canalul ROȘU
+            // Ochiul Stâng - ROȘU
             anaglifa.at<Vec3b>(y, x)[2] = stanga.at<uchar>(y, x);
 
             int disparitate_pixel = (depthMap.at<uchar>(y, x) * max_disparitate * factor_confort) / 255; 
             int x_ochi_drept = x - disparitate_pixel;
 
-            // Ochiul Drept vede Canalele VERDE și ALBASTRU (Cyan).
+            // Ochiul Drept - CYAN
             if (x_ochi_drept >= 0) {
                 uchar cyan = dreapta.at<uchar>(y, x_ochi_drept);
                 anaglifa.at<Vec3b>(y, x)[1] = cyan;
@@ -226,15 +226,15 @@ int main() {
 
         if (imgStanga.empty() || imgDreapta.empty()) continue;
 
-        // Calculăm Harta de Adâncime Manuală
+        // Harta de Adâncime
         Mat depthMap = calculeazaDepthMapSAD(imgStanga, imgDreapta, fereastra_cautare, max_disparitate);
 
-        // Aplicăm Post-Procesare
+        // Post-Procesare
         depthMap = filtruMedianOptimizat(depthMap);
         depthMap = filtruMedianOptimizat(depthMap);
         depthMap = filtruGaussianOptimizat(depthMap);
 
-
+		// Anaglifa 3D
         Mat anaglifa = creeazaAnaglifaCuDepthCorect(imgStanga, imgDreapta, depthMap, max_disparitate);
 
 
