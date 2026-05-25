@@ -105,7 +105,7 @@ Mat calculeazaDepthMapSAD(const Mat& stanga, const Mat& dreapta, int fereastra, 
 // CALCUL ANAGLIFĂ
 Mat creeazaAnaglifaCuDepthCorect(const Mat& stanga, const Mat& dreapta, const Mat& depthMap, int max_disparitate) {
     Mat anaglifa = Mat::zeros(stanga.size(), CV_8UC3);
-    float factor_confort = 0.1f;
+    float factor_confort = 0.2f;
 
 #pragma omp parallel for
     for (int y = 0; y < stanga.rows; y++) {
@@ -140,13 +140,15 @@ int main() {
     cout << "   PROCESARE VIDEO 3D (STEREO ANAGLIF)    \n";
     cout << "==========================================\n";
     cout << "Alege secventa de test:\n";
-    cout << " 1 - Secventa Test 1\n";
-    cout << " 2 - Secventa Test 2\n";
-    cout << " 3 - Secventa Test 3\n";
-    cout << " 4 - Secventa Test 4\n";
-    cout << " 5 - Secventa Test 5\n";
+    cout << " 1 - Secventa Test Spiderman\n";
+    cout << " 2 - Secventa Test Rollercoaster\n";
+    cout << " 3 - Secventa Test Ball\n";
+    cout << " 4 - Secventa Test Helicopter\n";
+    cout << " 5 - Secventa Test Bunny\n";
+	cout << " 6 - Secventa Test Butterfly\n";
+	cout << " 7 - Secventa Test Vettel\n";
     cout << "==========================================\n";
-    cout << "Introdu numarul (1-5): ";
+    cout << "Introdu numarul (1-7): ";
 
     if (!(cin >> optiune)) {
         cout << "Eroare: Nu ai introdus un numar valid!" << endl;
@@ -178,7 +180,17 @@ int main() {
         cale_stanga = "test/test_bunny/frames_L";
         cale_dreapta = "test/test_bunny/frames_R";
         nume_video = "film_anaglif_3D_test5.avi";
-        break;        
+        break;
+    case 6:
+        cale_stanga = "test/test_butterfly/frames_L";
+        cale_dreapta = "test/test_butterfly/frames_R";
+        nume_video = "film_anaglif_3D_test6.avi";
+        break;
+    case 7:
+        cale_stanga = "test/test_race/frames_L";
+        cale_dreapta = "test/test_race/frames_R";
+        nume_video = "film_anaglif_3D_test7.avi";
+        break;
     default:
         cout << "Optiune invalida!" << endl;
         return -1;
